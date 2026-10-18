@@ -1,0 +1,9 @@
+Package: com.forest.package-manager
+Name: Forest
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: A modern native package manager interface for rootful jailbroken iOS.
+Maintainer: Forest Team
+Author: Forest Team
+Section: Utilities
+Priority: optional
