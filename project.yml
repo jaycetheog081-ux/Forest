@@ -1,0 +1,36 @@
+name: Forest
+
+options:
+  bundleIdPrefix: com.forest
+  deploymentTarget:
+    iOS: "11.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+targets:
+  Forest:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: Forest
+        includes:
+          - "*.h"
+          - "*.m"
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.forest.package-manager
+        PRODUCT_NAME: Forest
+        INFOPLIST_FILE: Forest/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "11.0"
+        SWIFT_VERSION: ""
+        CLANG_ENABLE_OBJC_ARC: YES
+        CODE_SIGNING_ALLOWED: NO
+        ARCHS: arm64
+        VALID_ARCHS: arm64
+
+    scheme:
+      testTargets: []
