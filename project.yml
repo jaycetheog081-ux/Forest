@@ -6,6 +6,11 @@ options:
     iOS: "11.0"
   createIntermediateGroups: true
   developmentLanguage: en
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: false
+
+  # Use a project format compatible with older Xcode versions.
+  projectFormat: " Xcode 14.0"
 
 targets:
   Forest:
@@ -26,11 +31,9 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "11.0"
-        SWIFT_VERSION: ""
         CLANG_ENABLE_OBJC_ARC: YES
         CODE_SIGNING_ALLOWED: NO
         ARCHS: arm64
-        VALID_ARCHS: arm64
 
     scheme:
       testTargets: []
