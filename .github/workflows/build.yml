@@ -24,15 +24,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           brew install xcodegen dpkg
 
-      - name: Generate Xcode project
+      - name: Generate compatible Xcode project
         run: |
           set -euo pipefail
+
           xcodegen generate --spec project.yml
-          test -d Forest.xcodeproj
+
+          PROJECT_FILE="Forest.xcodeproj/project.pbxproj"
+
+          if [ ! -f "$PROJECT_FILE" ]; then
+            echo "ERROR: XcodeGen did not generate the project."
+            exit 1
+          fi
+
+          echo "Generated project format:"
+          grep -m 1 'objectVersion' "$PROJECT_FILE"
+
+          # Convert the project to the older PBX project format.
+          # Xcode 15 supports objectVersion 60.
+          sed -i '' \
+            's/objectVersion = 77;/objectVersion = 60;/' \
+            "$PROJECT_FILE"
+
+          echo "Project format after compatibility adjustment:"
+          grep -m 1 'objectVersion' "$PROJECT_FILE"
 
       - name: Build Forest
         run: |
@@ -58,10 +77,6 @@ jobs:
           test -f "$APP_PATH/Info.plist"
           test -f "$APP_PATH/Forest"
 
-          /usr/libexec/PlistBuddy \
-            -c "Print :CFBundleIdentifier" \
-            "$APP_PATH/Info.plist"
-
       - name: Package Debian package
         run: |
           set -euo pipefail
@@ -72,10 +87,9 @@ jobs:
 
           rm -rf "$PACKAGE_ROOT"
           mkdir -p "$PACKAGE_ROOT/Applications"
+          mkdir -p "$PACKAGE_ROOT/DEBIAN"
 
           cp -R "$APP_PATH" "$PACKAGE_ROOT/Applications/Forest.app"
-
-          mkdir -p "$PACKAGE_ROOT/DEBIAN"
           cp Packaging/DEBIAN/control "$PACKAGE_ROOT/DEBIAN/control"
 
           if [ -f Packaging/DEBIAN/postinst ]; then
