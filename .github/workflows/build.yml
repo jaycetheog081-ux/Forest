@@ -1,0 +1,104 @@
+name: Build Forest Debian Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "Forest/**"
+      - "Packaging/**"
+      - "project.yml"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Forest
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          brew install xcodegen dpkg
+
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate --spec project.yml
+          test -d Forest.xcodeproj
+
+      - name: Build Forest
+        run: |
+          set -euo pipefail
+
+          xcodebuild \
+            -project Forest.xcodeproj \
+            -scheme Forest \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify application
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Forest.app"
+
+          test -d "$APP_PATH"
+          test -f "$APP_PATH/Info.plist"
+          test -f "$APP_PATH/Forest"
+
+          /usr/libexec/PlistBuddy \
+            -c "Print :CFBundleIdentifier" \
+            "$APP_PATH/Info.plist"
+
+      - name: Package Debian package
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Forest.app"
+          PACKAGE_ROOT="build/package"
+          PACKAGE_OUTPUT="build/Forest.deb"
+
+          rm -rf "$PACKAGE_ROOT"
+          mkdir -p "$PACKAGE_ROOT/Applications"
+
+          cp -R "$APP_PATH" "$PACKAGE_ROOT/Applications/Forest.app"
+
+          mkdir -p "$PACKAGE_ROOT/DEBIAN"
+          cp Packaging/DEBIAN/control "$PACKAGE_ROOT/DEBIAN/control"
+
+          if [ -f Packaging/DEBIAN/postinst ]; then
+            cp Packaging/DEBIAN/postinst "$PACKAGE_ROOT/DEBIAN/postinst"
+            chmod 755 "$PACKAGE_ROOT/DEBIAN/postinst"
+          fi
+
+          if [ -f Packaging/DEBIAN/prerm ]; then
+            cp Packaging/DEBIAN/prerm "$PACKAGE_ROOT/DEBIAN/prerm"
+            chmod 755 "$PACKAGE_ROOT/DEBIAN/prerm"
+          fi
+
+          chmod 755 "$PACKAGE_ROOT/Applications/Forest.app/Forest"
+
+          dpkg-deb --build --root-owner-group \
+            "$PACKAGE_ROOT" "$PACKAGE_OUTPUT"
+
+          dpkg-deb --info "$PACKAGE_OUTPUT"
+
+      - name: Upload Forest Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Forest-deb
+          path: build/Forest.deb
+          if-no-files-found: error
+          retention-days: 14
